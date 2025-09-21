@@ -1,0 +1,48 @@
+name: Build Desktop App (Electron)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} • Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [18]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm # uses your lockfile hash to speed up installs :contentReference[oaicite:0]{index=0}
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Optional: verify it runs in dev (skip on macOS CI because no camera)
+      # - name: Lint/Tests here if you have them
+      #   run: npm run test --if-present
+
+      - name: Build distributables (electron-builder)
+        run: npm run dist
+
+      - name: Upload installers / artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MirrorMirrorPharaoh-${{ matrix.os }}
+          path: |
+            dist/**
+          if-no-files-found: error
+          retention-days: 14
+          # upload-artifact v4 supports multi-path, globs, exclusions. :contentReference[oaicite:1]{index=1}
